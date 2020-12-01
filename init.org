@@ -182,7 +182,8 @@ Bootstrap straight
 (setq straight-vc-git-default-protocol 'https)
 (setq straight-vc-git-force-protocol nil)
 (defvar bootstrap-version)
-(setq straight-host-usernames '((github . "progfolio")))
+(setq straight-host-usernames '((github . "progfolio")
+                                (gitlab . "iarchivedmywholelife")))
 (let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
       (bootstrap-version 5))
@@ -304,6 +305,7 @@ https://github.com/emacs-evil/evil
   (evil-want-integration t)
   (evil-want-C-i-jump t)
   (evil-search-module 'evil-search "use vim-like search instead of 'isearch")
+  (evil-undo-system 'undo-redo)
   :config
   ;;I want Emacs regular mouse click behavior
   (define-key evil-motion-state-map [down-mouse-1] nil)
@@ -399,7 +401,7 @@ The global definer allows me to use a leader key in most states.
 #+begin_src emacs-lisp
 (general-create-definer global-definer
   :keymaps 'override
-  :states '(insert emacs normal hybrid motion visual operator)
+  :states '(insert normal hybrid motion visual operator)
   :prefix "SPC"
   :non-normal-prefix "S-SPC")
 #+end_src
@@ -415,7 +417,7 @@ We define a global-leader definer to access major-mode specific bindings:
 #+begin_src emacs-lisp
 (general-create-definer global-leader
   :keymaps 'override
-  :states '(emacs normal hybrid motion visual operator)
+  :states '(normal hybrid motion visual operator)
   :prefix "SPC m"
   "" '( :ignore t
         :which-key
@@ -516,9 +518,9 @@ Create prefix map: +general-global-NAME. Prefix bindings in BODY with INFIX-KEY.
   "D" 'delete-other-frames
   "F" 'select-frame-by-name
   "O" 'other-frame-prefix
-  "c" '(:ignore t :which-key "color")
+  "c" '(:ingore t :which-key "color")
   "cb" 'set-background-color
-  "cb" 'set-cursor-color
+  "cc" 'set-cursor-color
   "cf" 'set-foreground-color
   "f" 'set-frame-font
   "m" 'make-frame-on-monitor
@@ -871,12 +873,14 @@ I may move it from its default location (=~/.elfeed=), in =elfeed-db-directory=.
 If SEPARATE is non-nil, launch a separate instance of mpv."
     (interactive "P")
     (make-process :name "*elfeed-mpv*"
-                  :command `("nohup" ,(if separate "mpv" "umpv")
-                             ,@(nreverse (mapcar (lambda (entry)
-                                                   (elfeed-entry-link entry))
-                                                 (elfeed-search-selected)))
-                             ;; added to prevent nohup.out file
-                             "&>/dev/null")
+                  :buffer "*elfeed-mpv*"
+                  :command (list "bash" "-c"
+                                 (string-join
+                                  `("nohup" ,(if separate "mpv" "umpv")
+                                    ,@(nreverse (mapcar (lambda (entry)
+                                                          (elfeed-entry-link entry))
+                                                        (elfeed-search-selected)))
+                                    "&> /dev/null") " "))
                   ;; No need to query for detached process when closing Emacs.
                   :noquery t)
     (elfeed-search-untag-all-unread)
@@ -1104,6 +1108,7 @@ https://github.com/emacs-helm/helm
   (helm-split-window-inside-p t "split window inside current window")
   (helm-move-to-line-cycle-in-source t "cycle to beggining or end afte reaching top/bottom of list")
   (helm-completion-style 'emacs "we want fuzzy matching/regular expressions")
+  (helm-show-completion-display-function nil "don't want to open a separate frame for this")
 
   :config
   (add-hook 'helm-after-initialize-hook (lambda () (with-helm-buffer (visual-line-mode))))
@@ -1335,6 +1340,16 @@ https://github.com/abo-abo/hydra
   (+general-global-window
     "." '(my/hydra-window-resize/body :which-key "window-resize")))
 #+end_src
+** i3wm-config-mode
+#+begin_quote
+An expansion of conf-mode to bring proper syntax highlighting to your i3wm config.
+#+end_quote
+
+#+begin_src emacs-lisp
+(use-package i3wm-config-mode
+  :commands (i3wm-config-mode)
+  :straight '(:type git :host github :repo "Alexander-Miller/i3wm-Config-Mode"))
+#+end_src
 ** js2
 #+begin_quote
 Improved JavaScript editing mode for GNU Emacs
@@ -1450,39 +1465,42 @@ https://jblevins.org/projects/markdown-mode/
 ** miscellany
 A package for miscellaneous functions.
 #+begin_src emacs-lisp
-  (use-package miscellany
-    :straight (miscellany :repo "git@192.168.1.180:emacs/miscellany.git"
-                          :branch "master"
-                          :build ("/usr/bin/emacs"
-                                  "--batch"
-                                  "--execute" "(progn (require 'ob-tangle) (org-babel-tangle-file \"./miscellany.org\"))"))
-    :commands (my/alternate-buffer
-               my/change-theme
-               my/compute-blood-pressure-table-row
-               my/kill-other-buffers
-               my/org-fix-close-times
-               my/org-remove-timestamp-time
-               my/org-toggle-hide-emphasis-markers
-               my/recompile-user-package-dir
-               my/server-eval-all
-               my/toggle-maximize-buffer
-               my/toggle-relative-lines
-               my/toggle-syntax-highlighting
-               my/universal-arg)
-    :general
-    (global-definer
-      "u" '(my/universal-arg :which-key "universal-arg"))
-    (+general-global-buffer
-      "a" '(my/alternate-buffer :which-key "alternate-buffer")
-      "m" '(my/kill-other-buffers :which-key "kill-other-buffers")
-      "N" '(my/normalize-buffer :which-key "normalize-buffer"))
-    (+general-global-window
-      "f" '(my/toggle-maximize-buffer :which-key "toggle-maximize-buffer"))
-    (+general-global-toggle
-      "S" '(my/toggle-syntax-highlighting :which-key "syntax-highlighting")
-      "m" '(my/toggle-mode :which-key "mode")
-      "n" '(my/toggle-relative-lines :which-key "relative-lines")
-      "t" '(my/change-theme :which-key "change-theme")))
+(use-package miscellany
+  :straight ( :repo "git@192.168.1.180:emacs/miscellany.git"
+              :branch "master"
+              :build ("/usr/bin/emacs" "--batch" "--execute"
+                      "(progn (require 'ob-tangle) (org-babel-tangle-file \"./miscellany.org\"))"))
+  :commands (my/alternate-buffer
+             my/change-theme
+             my/compute-blood-pressure-table-row
+             my/kill-other-buffers
+             my/org-fix-close-times
+             my/org-remove-timestamp-time
+             my/org-toggle-hide-emphasis-markers
+             my/recompile-user-package-dir
+             my/server-eval-all
+             my/toggle-maximize-buffer
+             my/toggle-relative-lines
+             my/toggle-syntax-highlighting
+             my/universal-arg)
+  :general
+  (global-definer
+    "u" '(my/universal-arg :which-key "universal-arg"))
+  (+general-global-buffer
+    "a" '(my/alternate-buffer   :which-key "alternate-buffer")
+    "m" '(my/kill-other-buffers :which-key "kill-other-buffers")
+    "N" '(my/normalize-buffer   :which-key "normalize-buffer"))
+  (+general-global-window
+    "f" '(my/toggle-maximize-buffer
+          :which-key "toggle-maximize-buffer"))
+  (+general-global-toggle
+    "S" '(my/toggle-syntax-highlighting :which-key "syntax-highlighting")
+    "m" '(my/toggle-mode                :which-key "mode")
+    "n" '(my/toggle-relative-lines      :which-key "relative-lines")
+    "t" '(:ignore t :which-key "theme")
+    "tt" '(my/change-theme :which-key "toggle-theme")
+    "tn" '((lambda () (interactive) (my/theme-nth 1))  :which-key "theme-next")
+    "tp" '((lambda () (interactive) (my/theme-nth -1)) :which-key "theme-prev")))
 #+end_src
 ** mu4e
 #+begin_quote
@@ -1492,11 +1510,12 @@ https://www.djcbsoftware.nl/code/mu/mu4e.html
 #+end_quote
 #+begin_src emacs-lisp
 (use-package mu4e
-  :straight (:source el-get :files (:defaults "mu4e/*.el"))
+  :straight ( :host github :files ("mu4e/*") :repo "djcb/mu" :branch "master"
+              :build (("./autogen.sh")
+                      ("make")))
   :commands (mu4e mu4e-update-index)
   :custom
-  (mu4e-mu-binary "~/.emacs.d/straight/repos/mu/mu/mu")
-  (mu4e-mu-version "1.5.5" "hack until straight.el supports build commands")
+  (mu4e-mu-binary (expand-file-name "mu/mu" (straight--repos-dir "mu")))
   (mu4e-org-support nil "Don't want mu4e loading Org unless I need to.")
   (message-mail-user-agent 'mu4e-user-agent "Use mu4e as default email program.")
   (mu4e-maildir (expand-file-name "~/Documents/emails/"))
@@ -1592,15 +1611,16 @@ https://github.com/iqbalansari/mu4e-alert
 #+end_quote
 #+begin_src emacs-lisp
 (use-package mu4e-alert
+  :defer 20
   :after (org)
   :config
   (setq mu4e-alert-set-window-urgency nil)
   (mu4e-alert-enable-mode-line-display)
   (mu4e-alert-enable-notifications)
-  :hook
-  (after-init . (lambda ()
-                  (mu4e-alert-enable-mode-line-display)
-                  (mu4e-alert-enable-notifications))))
+  :config
+  (lambda ()
+    (mu4e-alert-enable-mode-line-display)
+    (mu4e-alert-enable-notifications)))
 #+end_src
 ** nov (epub)
 #+begin_quote
@@ -1991,6 +2011,10 @@ This may impact my startup time. Going to look into fixing this.
     nil nil :ascent center)
    ("[Cc]hore" ,(list (all-the-icons-octicon "home"))
     nil nil :ascent center)
+   ("[Ee]xercise" ,(list (all-the-icons-material "directions_walk"))
+    nil nil :ascent center)
+   ("[Ff]ood" ,(list (all-the-icons-material "local_pizza"))
+    nil nil :ascent center)
    ("[Hh]abit" ,(list (all-the-icons-faicon "repeat"))
     nil nil :ascent center)
    ("[Hh]ealth" ,(list (all-the-icons-faicon "heartbeat"))
@@ -2065,7 +2089,7 @@ Align tags to column 80 in the agenda view:
 I want language specific code block templates. I may use yasnippets for this
 later to have more flexibility.
 #+begin_src emacs-lisp
-(dolist (template '(("se" . "src emacs-lisp")
+(dolist (template '(("se" . "src emacs-lisp :lexical t")
                     ("ss" . "src shell")
                     ("sj" . "src javascript")))
   (add-to-list 'org-structure-template-alist template))
@@ -2255,7 +2279,7 @@ If a template has a :properties keyword, add them to the entry."
                            :table-line-pos "II-1")))
               ("Listen"
                :keys "l"
-               :hook (lambda (+org-capture-property-drawer) (+org-capture-todo))
+               :hook (lambda () (+org-capture-property-drawer) (+org-capture-todo))
                :template ("* TODO %^{Title} %^g" "%^{Genre}")
                :children (("Audio Book"
                            :keys "a"
@@ -2274,20 +2298,27 @@ If a template has a :properties keyword, add them to the entry."
                            :id "78da1d3e-c83a-4769-9fb2-91e8ff7ab5da")))
               ("Note"
                :keys "n"
-               :file ,(defun my/project-note-file ()
-                        (let ((file (expand-file-name "notes.org" (when (functionp 'projectile-project-root)
-                                                                    (projectile-project-root)))))
-                          (with-current-buffer (find-file-noselect file)
-                            (org-mode)
-                            ;;set to utf-8 because we may be visiting raw file
-                            (setq buffer-file-coding-system 'utf-8-unix)
+               :file ,(defun +org-capture-repo-note-file ()
+                        "Find note for current repository."
+                        (require 'projectile)
+                        ;;@MAYBE: extract this to a global variable.
+                        (let* ((notedir "~/Documents/devops/repo-notes/")
+                               (project-root (projectile-project-root))
+                               (name (concat
+                                      (car (last (split-string (projectile-project-root) "/") 2))
+                                      ".org"))
+                               (path (expand-file-name name (file-truename notedir))))
+                          (with-current-buffer (find-file-noselect path)
+                            (unless (derived-mode-p 'org-mode) (org-mode)
+                                    ;;set to utf-8 because we may be visiting raw file
+                                    (setq buffer-file-coding-system 'utf-8-unix))
                             (when-let ((headline (doct-get :headline)))
                               (unless (org-find-exact-headline-in-buffer headline)
                                 (goto-char (point-max))
                                 (insert "* " headline)
                                 (org-set-tags (downcase headline))))
-                            (unless (file-exists-p file) (write-file file))
-                            file)))
+                            (unless (file-exists-p path) (write-file path))
+                            path)))
                :template (lambda () (concat  "* %{todo-state} " (when (y-or-n-p "Link? ") "%A\n") "%?"))
                :todo-state "TODO"
                :children (("bug" :keys "b" :headline "Bug")
@@ -2659,8 +2690,9 @@ https://github.com/politza/pdf-tools#about-this-package
 This  allows me to customize the color of the generated pdf.
 #+begin_src emacs-lisp
 (use-package pdf-tools
+  :straight (:post-build (pdf-tools-install 'no-query 'skip-dependencies))
   :functions (pdf-isearch-batch-mode)
-  :commands (pdf-tools-install pdf-view-mode)
+  :commands (pdf-tools-install pdf-view-mode pdf-tools-install)
   :config (add-hook 'pdf-view-mode-hook
                     (lambda ()
                       ;;for fast i-search in pdf buffers
@@ -2878,7 +2910,10 @@ https://github.com/akermu/emacs-libvterm
 #+end_quote
 #+begin_src emacs-lisp
 (use-package vterm
-  :straight (:post-build ((setq vterm-always-compile-module t) (require 'vterm)))
+  :straight (:post-build (cl-letf (((symbol-function #'pop-to-buffer)
+                                    (lambda (buffer) (with-current-buffer buffer (message (buffer-string))))))
+                           (setq vterm-always-compile-module t)
+                           (require 'vterm)))
   :commands (vterm vterm-other-window)
   :general
   (+general-global-application
