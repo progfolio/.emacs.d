@@ -75,8 +75,8 @@ The following is a table shows values from popular Emacs configurations.
 | Spacemacs    |         100000000 |
 
 #+begin_src emacs-lisp :lexical t
-(setq gc-cons-threshold most-positive-fixnum
-      gc-cons-percentage 1)
+(setq gc-cons-threshold (* 1024 1024)
+      gc-cons-percentage 0.75)
 
 (defun +gc-after-focus-change ()
   "Run GC when frame loses focus."
@@ -122,8 +122,9 @@ Fonts larger than the system default can cause frame resizing, which adds to sta
 
 Set default and backup fonts
 #+begin_src emacs-lisp :lexical t
+(set-face-attribute 'default nil :height 180)
 (push '(font . "Source Code Pro") default-frame-alist)
-(set-face-font 'default "Source Code Pro")
+(set-face-font 'default "Source Code Pro-20")
 (set-face-font 'variable-pitch "DejaVu Sans")
 (copy-face 'default 'fixed-pitch)
 #+end_src
@@ -198,7 +199,7 @@ I prefer to keep my themes in a sub-folder of =~/.emacs.d=
 I'm working on a theme that is readable and attractive.
 
 #+begin_src emacs-lisp :lexical t
-(defvar +theme 'mine "Default theme.")
+(defvar +theme 'modus-vivendi-tinted "Default theme.")
 (require 'cl-lib)
 (require 'custom)
 ;; remove synthetic use-package theme
@@ -214,15 +215,16 @@ https://github.com/progfolio/elpaca
 
 *** Installer
 #+begin_src emacs-lisp :lexical t
-(defvar elpaca-installer-version 0.1)
+(defvar elpaca-installer-version 0.2)
 (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
 (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
+(defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
 (defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
                               :ref nil
                               :pre-build ("git" "remote" "set-url" "origin" "git@github.com:progfolio/elpaca.git")
                               :files (:defaults (:exclude "extensions"))
                               :build (:not elpaca--activate-package)))
-(when-let ((repo  (expand-file-name "repos/elpaca/" elpaca-directory))
+(when-let ((repo  (expand-file-name "elpaca/" elpaca-repos-directory))
            (build (expand-file-name "elpaca/" elpaca-builds-directory))
            (order (cdr elpaca-order))
            ((add-to-list 'load-path (if (file-exists-p build) build repo)))
@@ -252,7 +254,15 @@ Use Evil bindings in status and UI maps
 #+begin_src emacs-lisp :lexical t
 (with-eval-after-load 'evil
   (with-eval-after-load 'elpaca-ui (evil-make-intercept-map elpaca-ui-mode-map))
-  (with-eval-after-load 'elpaca-info (evil-make-intercept-map elpaca-info-mode-map)))
+  (with-eval-after-load 'elpaca-info
+    (evil-make-intercept-map elpaca-info-mode-map)
+    (add-hook 'elpaca-info-mode-hook (lambda () (visual-line-mode 1) (hl-line-mode 1)))))
+
+(add-to-list 'display-buffer-alist
+             '("\\*elpaca-info\\*"
+               (display-buffer-in-direction)
+               (direction . up)
+               (window-height . 0.8)))
 #+end_src
 
 [[https://www.funtoo.org/Keychain][Keychain]] is a gpg/ssh agent that allows me to cache my credentials.
@@ -263,9 +273,6 @@ This package gets the correct environment variables so elpaca can use the ssh pr
 (elpaca-queue
  (elpaca keychain-environment
    (keychain-refresh-environment)))
-(elpaca-queue
- (elpaca (melpulls :host github :repo "progfolio/melpulls" :protocol ssh)
-   (add-to-list 'elpaca-menu-functions 'melpulls)))
 #+end_src
 
 ** packaging
@@ -292,7 +299,7 @@ Allow Elpaca to process queues up to this point
 #+end_src
 
 #+begin_src emacs-lisp :lexical t
-(if debug-on-error
+(if nil
     (setq use-package-verbose t
           use-package-expand-minimally nil
           use-package-compute-statistics t)
@@ -1335,7 +1342,7 @@ https://www.flycheck.org/en/latest/
     "b" 'flyspell-buffer
     "w" 'flyspell-word
     "r" 'flyspell-region)
-  :hook ((org-mode mu4e-compose-mode git-commit-mode) . flyspell-mode))
+  :hook ((mu4e-compose-mode git-commit-mode) . flyspell-mode))
 #+end_src
 *** flyspell-correct
 #+begin_quote
@@ -1382,6 +1389,7 @@ https://github.com/emacs-helm/helm
 (use-package helm
   :defer 1
   :custom
+  (helm-candidate-number-limit nil)
   (helm-echo-input-in-header-line t)
   (helm-split-window-inside-p t "split window inside current window")
   (helm-move-to-line-cycle-in-source t "cycle to beggining or end afte reaching top/bottom of list")
@@ -1772,7 +1780,7 @@ An emacs-based e-mail client which uses mu as its back-end.
 
 https://www.djcbsoftware.nl/code/mu/mu4e.html
 #+end_quote
-#+begin_src emacs-lisp :lexical t
+#+begin_src emacs-lisp :lexical t :tangle no
 (use-package mu4e
   :elpaca (mu4e :host github :files ("mu4e/*.el" "build/mu4e/mu4e-meta.el" "build/mu4e/mu4e-config.el" "build/mu4e/mu4e.info") :repo "djcb/mu"
                 :main "mu4e/mu4e.el"
@@ -1907,6 +1915,7 @@ https://github.com/rnkn/olivetti
 ** org
 #+begin_src emacs-lisp :lexical t
 (use-package org
+  :elpaca (org :build (:not elpaca--compile-info elpaca--generate-autoloads-async))
   :defer t
   :general
   (general-define-key :states '(normal) :keymaps 'org-mode-map
@@ -2073,6 +2082,9 @@ https://github.com/rnkn/olivetti
     "-"   'org-ctrl-c-minus
     "A"   'org-attach)
   :config
+  (add-hook 'org-mode-hook #'visual-line-mode)
+  (add-hook 'org-mode-hook (lambda ()
+                             (add-hook 'before-save-hook (lambda nil (org-babel-remove-result-one-or-many '(4))) nil t)))
   ;;Fix off-by-one paren matching in Org src blocks.
   ;;https://emacs.stackexchange.com/questions/50216/org-mode-code-block-parentheses-mismatch
   ;;@TODO: slow in "work schedule" org-agenda command. Not sure why.
@@ -2115,11 +2127,6 @@ https://github.com/rnkn/olivetti
     (interactive)
     (org-update-statistics-cookies "ALL"))
 
-  ;; TOO SLOW!
-  ;; (add-hook 'org-mode-hook
-  ;;           (lambda ()
-  ;;             (add-hook 'before-save-hook '+org-update-cookies nil 'local)))
-
   ;; Offered a patch to fix this upstream. Too much bikeshedding for such a simple fix.
   (defun +org-tags-crm (fn &rest args)
     "Workaround for bug which excludes \",\" when reading tags via `completing-read-multiple'.
@@ -2133,21 +2140,11 @@ https://github.com/rnkn/olivetti
     (advice-add #'completing-read-multiple :around #'+org-tags-crm)
     (apply fn args))
   :custom
-  ;;default:
-  ;;(org-w3m org-bbdb org-bibtex org-docview org-gnus org-info org-irc org-mhe org-rmail)
-  ;;org-toc is interesting, but I'm not sure if I need it.
   (org-modules '(org-habit))
   (org-todo-keywords
-   '((sequence  "TODO(t)" "STARTED(s!)" "NEXT(n!)" "BLOCKED(b@/!)" "|" "DONE(d)")
+   '((sequence  "TODO(t)" "STARTED(s)" "NEXT(n)" "BLOCKED(b@/!)" "|" "DONE(d)")
      (sequence  "IDEA(i)" "|" "CANCELED(c@/!)" "DELEGATED(D@/!)")
-     (sequence  "RESEARCH(r)" "|"))
-   ;;move to theme?
-   org-todo-keyword-faces
-   `(("CANCELED" . (:foreground "IndianRed1" :weight bold))
-     ("TODO" . (:foreground "#ffddaa"
-                            :weight bold
-                            :background "#202020"
-                            :box (:line-width 3 :width -2 :style released-button)))))
+     (sequence  "RESEARCH(r)" "|")))
   (org-ellipsis (nth 5 '("↴" "˅" "…" " ⬙" " ▽" "▿")))
   (org-priority-lowest ?D)
   (org-fontify-done-headline t)
@@ -2935,7 +2932,7 @@ Stolen from: [[https://emacs.stackexchange.com/questions/22128/how-to-org-refile
       org-enforce-todo-dependencies t
       org-hide-emphasis-markers t
       org-hierarchical-todo-statistics nil
-      org-log-done 'time
+      org-log-done nil
       org-log-reschedule t
       org-return-follows-link t
       org-reverse-note-order t
@@ -3375,7 +3372,7 @@ https://github.com/ternjs/tern
 ** time
 I like to see the date and time in my mode line.
 I use doom-modeline for the rest of my mode line configuration.
-#+begin_src emacs-lisp :lexical t
+#+begin_src emacs-lisp :lexical t :tangle no
 (use-feature time
   :custom
   (display-time-day-and-date t "Show date, day, and time")
@@ -3524,8 +3521,8 @@ https://github.com/bnbeckwith/writegood-mode
 #+end_quote
 #+begin_src emacs-lisp :lexical t
 (use-package writegood-mode
-  :commands (writegood-mode)
-  :hook (org-mode))
+  :commands (writegood-mode))
+
 #+end_src
 ** yasnippet
 #+begin_quote
@@ -3556,7 +3553,7 @@ https://github.com/NicolasPetton/zerodark-theme
   :defer t)
 #+end_src
 ** spiel
-#+begin_src emacs-lisp :lexical t
+#+begin_src emacs-lisp :lexical t :tangle no
 (use-package spiel
   :elpaca (spiel :host github :repo "progfolio/spiel" :depth nil :protocol ssh)
   :defer t
@@ -3566,7 +3563,7 @@ https://github.com/NicolasPetton/zerodark-theme
       (evil-set-initial-state 'spiel-input-mode 'insert))))
 #+end_src
 ** greg
-#+begin_src emacs-lisp :lexical t
+#+begin_src emacs-lisp :lexical t :tangle no
 (use-package greg
   :defer t
   :elpaca (greg :host github :repo "progfolio/greg"
