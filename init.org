@@ -215,9 +215,9 @@ https://github.com/progfolio/elpaca
 *** Installer
 #+begin_src emacs-lisp :lexical t
 
-(defvar elpaca-installer-version 0.12)
+(defvar elpaca-installer-version 0.13)
 (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
-(defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
+(defvar elpaca-builds-directory (expand-file-name (format "builds-%s/" emacs-version) elpaca-directory))
 (defvar elpaca-repos-directory (expand-file-name "sources/" elpaca-directory))
 (defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
                               :build
@@ -227,7 +227,7 @@ https://github.com/progfolio/elpaca
                                           e 0 "git" "remote" "set-url" "origin" "git@github.com:progfolio/elpaca.git")
                                          (elpaca--continue-build e)))
                                (:not elpaca-activate))
-                              :ref "feat/refactor" :depth 1 :inherit ignore
+                              :ref nil :depth 1 :inherit ignore
                               :files (:defaults "elpaca-test.el" (:exclude "extensions"))))
 
 (let* ((repo  (expand-file-name "elpaca/" elpaca-repos-directory))
