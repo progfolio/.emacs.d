@@ -1990,7 +1990,6 @@ A package for miscellaneous functions.
             (:after elpaca-source
                     ,(elpaca-defscript +miscellany-tangle (:type elisp)
                        (require 'ob-tangle)
-                       (message "injected state: %S" ,gc-cons-threshold)
                        (setq org-confirm-babel-evaluate nil)
                        (org-babel-tangle-file "./miscellany.org"))
                     (lambda (e)
