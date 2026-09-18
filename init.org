@@ -1355,21 +1355,21 @@ I may move it from its default location (=~/.elfeed=), in =elfeed-db-directory=.
   :config
   (defvar +elfeed-feed-file (expand-file-name "~/Documents/rss-feeds.org"))
 
-  (setq elfeed-feeds
+  (setopt elfeed-feeds
         (with-current-buffer (find-file-noselect +elfeed-feed-file)
           (save-excursion
             (save-restriction
               (org-fold-show-all)
               (goto-char (point-min))
               (let ((found nil))
-                (org-element-map (org-element-parse-buffer) 'link
-                  (lambda (node) (when-let* ((props (cadr node))
+                (org-element-map (org-element-parse-buffer) t
+                  (lambda (node) (when-let* ((props (car (cdr-safe node)))
                                              (standards (plist-get props :standard-properties))
                                              (tags (org-get-tags (aref standards 0)))
                                              ((member "elfeed" tags))
-                                             ((not (member "ignore" tags))))
-                                   (push (cons (plist-get props :raw-link)
-                                               (delq 'elfeed (mapcar #'intern tags)))
+                                             ((not (member "ignore" tags)))
+                                             (link (plist-get props :RAW-LINK)))
+                                   (push (cons link (delq 'elfeed (mapcar #'intern tags)))
                                          found)))
                   nil nil t)
                 (nreverse found))))))
