@@ -2043,7 +2043,7 @@ https://www.djcbsoftware.nl/code/mu/mu4e.html
   :ensure `(mu4e :host github :files ("mu4e/*.el" "build/mu4e/mu4e-meta.el" "build/mu4e/mu4e-config.el" "build/mu4e/mu4e.info") :repo "djcb/mu"
                  :main "mu4e/mu4e.el"
                  :build ((:before elpaca-check-version
-                                  ,(elpaca-defscript +mu4e-build-bianry (:type system)
+                                  ,(elpaca-defscript +mu4e-build-binary (:type system)
                                      ("bash" "-c" ". ./autogen.sh -Dtests=disabled")
                                      ("ninja" "-C" "build")
                                      ("ln" "-sf" ,(expand-file-name "./build/mu/mu") ,(expand-file-name "~/bin/mu"))
