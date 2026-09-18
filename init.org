@@ -1447,6 +1447,24 @@ These settings defined in C code, so we use the ~emacs~ pseudo-package to set th
   (report-emacs-bug-no-explanations t)
   (report-emacs-bug-no-confirmation t))
 #+end_src
+** embark
+#+begin_quote
+Conveniently act on minibuffer completions
+#+end_quote
+#+begin_src emacs-lisp :lexical t
+(use-package embark
+  :bind (("C-;" . embark-act)
+         ("C-:" . embark-act-all)
+         ("C-'" . embark-dwim)
+         ("C-h B" . embark-bindings)))
+#+end_src
+** embark-consult
+#+begin_quote
+Consult integration for Embark
+#+end_quote
+#+begin_src emacs-lisp :lexical t
+(use-package embark-consult :defer t)
+#+end_src
 ** ement.el
 #+begin_quote
 Ement.el is a new Matrix client for Emacs. It aims to be simple, fast, featureful, and reliable.
