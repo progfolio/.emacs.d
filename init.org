@@ -791,6 +791,63 @@ And a macro to ease the creation of nested menu bindings:
   :prefix "C-x")
 #+end_src
 *** TODO org-mode meta-mappings á la Spacemacs. C - F 'clever-insert' in Spacemacs source.
+** gptel
+#+begin_src emacs-lisp :lexical t
+(use-package gptel
+  :commands (gptel)
+  :config
+  (with-eval-after-load 'evil-collection-gptel
+    (evil-collection-define-key 'normal 'gptel-mode-map (kbd "<return>") nil)
+    (evil-collection-define-key 'visual 'gptel-mode-map (kbd "<return>") nil))
+
+  (defun +gptel-web-search (query)
+    (let* ((server-url "http://192.168.1.180:8888/search")
+           (encoded-query (url-hexify-string query))
+           (full-url (format "%s?q=%s&format=json" server-url encoded-query))
+           (url-request-method "GET")
+           (result-string ""))
+      (with-current-buffer (url-retrieve-synchronously full-url)
+        (goto-char (point-min))
+        ;; Skip HTTP headers to get to raw JSON body
+        (delete-region (point-min) (1+ (goto-char url-http-end-of-headers)))
+        (let* ((json-object-type 'hash-table)
+               (json-array-type 'list)
+               (json-key-type 'string)
+               (parsed-data (json-read)))
+          (let ((results (gethash "results" parsed-data)))
+            ;; Map top 5 search entries into a clean context format for the LLM
+            (setq result-string
+                  (mapconcat
+                   (lambda (item)
+                     (format "Title: %s\nURL: %s\nContent: %s\n---"
+                             (gethash "title" item)
+                             (gethash "url" item)
+                             (gethash "content" item)))
+                   (seq-take results 5)
+                   "\n"))))
+        (kill-buffer))
+      result-string))
+
+  (gptel-make-tool
+   :name "searxng_web_lookup"
+   :description "Search the web using a local SearXNG metasearch instance. Use this when the user asks for current events, up-to-date data, or information you do not know."
+   :function #'+gptel-web-search
+   :args '((:name "query"
+                  :type string
+                  :description "The search engine query string"))
+   :category "web-search")
+  (setq gptel-backend
+        (gptel-make-ollama "AMD"
+          :host "192.168.1.160:11434"
+          :stream t
+          :models '(qwen3.8:27b mixtral:8x7b (llama3.3:70b :capabilities '((:tool-use)))))
+        gptel-model 'qwen3.8:27b
+        gptel-default-mode 'org-mode
+        gptel-temperature 1.0
+        gptel-include-reasoning nil
+        gptel-extra-params '((options . ((think . :json-false)))))
+  (setf (alist-get 'org-mode gptel-prompt-prefix-alist) "* "))
+#+end_src
 ** evil
 #+begin_quote
 Evil is an extensible vi layer for Emacs. It emulates the main features of Vim, and provides facilities for writing custom extensions.
