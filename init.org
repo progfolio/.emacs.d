@@ -3347,7 +3347,7 @@ https://github.com/politza/pdf-tools#about-this-package
 This  allows me to customize the color of the generated pdf.
 #+begin_src emacs-lisp :lexical t
 (use-package pdf-tools
-  :ensure `(pdf-tools :build (:after elpaca-git--checkout-ref
+  :ensure `(pdf-tools :build (:before elpaca-build-link
                                      ,(elpaca-defscript +pdf-tools-build-server (:type system)
                                         ("pwd")
                                         (,(expand-file-name "./server/autobuild"))))
