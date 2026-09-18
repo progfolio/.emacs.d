@@ -1345,9 +1345,9 @@ style backtrace.
 #+begin_quote
 Elfeed is an extensible web feed reader for Emacs, supporting both Atom and RSS.
 
-https://github.com/skeeto/elfeed
+https://github.com/emacs-elfeed/elfeed
 #+end_quote
-I've put my elfeed database in under version control.
+I've put my elfeed database under version control.
 I may move it from its default location (=~/.elfeed=), in =elfeed-db-directory=.
 #+begin_src emacs-lisp :lexical t
 (use-package elfeed
